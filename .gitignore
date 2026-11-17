@@ -53,3 +53,16 @@ Thumbs.db
 # Env
 .env
 .env.*
+
+# Spring Tool Suite
+.apt_generated
+.factorypath
+.springBeans
+.sts4-cache
+
+# Gradle-style build dir (kept for tooling parity)
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+!**/src/main/**/target/
+!**/src/test/**/target/
