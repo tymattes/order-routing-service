@@ -13,6 +13,22 @@ _TODO_
 - **Quality** — _TODO_
 - **Geographic preference** — _TODO_
 
+## Tech stack
+
+| Area | Technology |
+|---|---|
+| Language | Java 25 (LTS) |
+| Framework | Spring Boot 4.1.2 (Spring Framework 7.0.10) |
+| Web | Spring Web MVC on embedded Tomcat 11, port 8080 |
+| Operations | Spring Boot Actuator (`health`, liveness and readiness probes) |
+| Build | Maven 3.10.1 via the Maven Wrapper (`./mvnw`), packaged as an executable jar |
+| Configuration | YAML (`src/main/resources/application.yaml`) |
+| Testing | JUnit 6, Spring Boot Test with MockMvc |
+| API testing | Postman collection, runnable with Newman |
+| Containers | Multi-stage Docker build: `eclipse-temurin:25-jdk` to build, `eclipse-temurin:25-jre` to run (non-root user, layered jar) |
+
+Base package: `com.tylermatteson.orderrouting`. The project was scaffolded with [Spring Initializr](https://start.spring.io/).
+
 ## Build & run
 
 ```bash
