@@ -10,6 +10,7 @@ import com.tylermatteson.orderrouting.product.Category;
 import com.tylermatteson.orderrouting.product.InMemoryProductRepository;
 import com.tylermatteson.orderrouting.product.ProductRepository;
 import com.tylermatteson.orderrouting.supplier.InMemorySupplierRepository;
+import com.tylermatteson.orderrouting.supplier.Supplier;
 import com.tylermatteson.orderrouting.supplier.SupplierRepository;
 import com.tylermatteson.orderrouting.supplier.ZipCoverage;
 
@@ -39,12 +40,16 @@ class ReferenceDataLoadingTests {
 	void loadsRealSuppliers() {
 		assertThat(supplierRepository).isInstanceOf(InMemorySupplierRepository.class);
 		assertThat(((InMemorySupplierRepository) supplierRepository).size()).isEqualTo(1100);
-		assertThat(supplierRepository.findById("SUP-T001")).isPresent();
+		assertThat(supplierRepository.findByCategory(Category.WHEELCHAIR)).extracting(Supplier::id)
+			.contains("SUP-T001");
 		// SUP-016 lists 4-digit ranges ("2164-2213, ..."), so 2170 and 02170 must both be covered.
-		assertThat(supplierRepository.findById("SUP-016")).hasValueSatisfying(supplier -> {
-			assertThat(supplier.serviceZips().covers(2170)).isTrue();
-			assertThat(supplier.serviceZips().covers(ZipCoverage.normalizeZip("02170").getAsInt())).isTrue();
-		});
+		assertThat(supplierRepository.findByCategory(Category.NEBULIZER))
+			.filteredOn(supplier -> supplier.id().equals("SUP-016"))
+			.singleElement()
+			.satisfies(supplier -> {
+				assertThat(supplier.serviceZips().covers(2170)).isTrue();
+				assertThat(supplier.serviceZips().covers(ZipCoverage.normalizeZip("02170").getAsInt())).isTrue();
+			});
 	}
 
 }

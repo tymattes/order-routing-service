@@ -97,6 +97,1233 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Route",
+      "description": "POST /api/route. Routing and sample-order requests are expected to fail until the routing logic is implemented.",
+      "item": [
+        {
+          "name": "Validation",
+          "item": [
+            {
+              "name": "Validation - items empty",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"10015\",\n  \"mail_order\": false,\n  \"items\": []\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Order must include at least one line item.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - items missing",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"10015\",\n  \"mail_order\": false\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Order must include at least one line item.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - customer_zip missing",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Order must include a valid customer_zip.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - customer_zip \"\"",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Order must include a valid customer_zip.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - customer_zip \"ABCDE\"",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"ABCDE\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Order must include a valid customer_zip.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - customer_zip \"123456\"",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"123456\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Order must include a valid customer_zip.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - items empty and customer_zip missing",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"mail_order\": false,\n  \"items\": []\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Order must include at least one line item.\", \"Order must include a valid customer_zip.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - order_id missing",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customer_zip\": \"10015\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Order must include an order_id.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - order_id blank",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"  \",\n  \"customer_zip\": \"10015\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Order must include an order_id.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - mail_order missing",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"10015\",\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Order must include mail_order (true or false).\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - line 2 product_code blank",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"10015\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    },\n    {\n      \"product_code\": \"  \",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Line item 2 must include a product_code.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - quantity 0",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"10015\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 0\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Line item 1 must have a quantity of at least 1.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - quantity -1",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"10015\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": -1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Line item 1 must have a quantity of at least 1.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - quantity missing",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"10015\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\"\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Line item 1 must have a quantity of at least 1.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - unknown product_code",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"10015\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"XX-NOPE-999\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Unknown product_code: XX-NOPE-999.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - malformed JSON",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{not json",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Request body must be a valid JSON order.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - quantity of wrong type",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"10015\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": \"abc\"\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Request body must be a valid JSON order.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validation - every error at once",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customer_zip\": \"ABCDE\",\n  \"items\": [\n    {\n      \"product_code\": \" \",\n      \"quantity\": 0\n    },\n    {\n      \"product_code\": \"XX-NOPE-999\",\n      \"quantity\": 2\n    },\n    {\n      \"product_code\": \"WC-STD-001\"\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"Order must include an order_id.\", \"Order must include a valid customer_zip.\", \"Order must include mail_order (true or false).\", \"Line item 1 must include a product_code.\", \"Line item 1 must have a quantity of at least 1.\", \"Unknown product_code: XX-NOPE-999.\", \"Line item 3 must have a quantity of at least 1.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Routing",
+          "item": [
+            {
+              "name": "R1 - no mail without permission",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"00001\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Feasible with one shipment', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(true);",
+                      "    pm.expect(body).to.not.have.property('errors');",
+                      "    pm.expect(body.routing).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Routed to the expected supplier', function () {",
+                      "    const shipment = pm.response.json().routing[0];",
+                      "    pm.expect(shipment.supplier_id).to.eql('SUP-T001');",
+                      "    shipment.items.forEach(i => pm.expect(i.fulfillment_mode).to.eql('local'));",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "R2 - mail-capable supplier serving the zip is local",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"00002\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Feasible with one shipment', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(true);",
+                      "    pm.expect(body).to.not.have.property('errors');",
+                      "    pm.expect(body.routing).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Routed to the expected supplier', function () {",
+                      "    const shipment = pm.response.json().routing[0];",
+                      "    pm.expect(shipment.supplier_id).to.eql('SUP-T002');",
+                      "    shipment.items.forEach(i => pm.expect(i.fulfillment_mode).to.eql('local'));",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "R3 - deterministic tie-break",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"00003\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"CN-STD-063\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Feasible with one shipment', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(true);",
+                      "    pm.expect(body).to.not.have.property('errors');",
+                      "    pm.expect(body.routing).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Routed to the expected supplier', function () {",
+                      "    const shipment = pm.response.json().routing[0];",
+                      "    pm.expect(shipment.supplier_id).to.eql('SUP-T003');",
+                      "    shipment.items.forEach(i => pm.expect(i.fulfillment_mode).to.eql('local'));",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "R4 - local beats mail at equal rating",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"00005\",\n  \"mail_order\": true,\n  \"items\": [\n    {\n      \"product_code\": \"WK-STD-009\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Feasible with one shipment', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(true);",
+                      "    pm.expect(body).to.not.have.property('errors');",
+                      "    pm.expect(body.routing).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Routed to the expected supplier', function () {",
+                      "    const shipment = pm.response.json().routing[0];",
+                      "    pm.expect(shipment.supplier_id).to.eql('SUP-T005');",
+                      "    shipment.items.forEach(i => pm.expect(i.fulfillment_mode).to.eql('local'));",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "R5 - consolidation beats ratings",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"00007\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    },\n    {\n      \"product_code\": \"CN-STD-063\",\n      \"quantity\": 1\n    },\n    {\n      \"product_code\": \"WK-STD-009\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Feasible with one shipment', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(true);",
+                      "    pm.expect(body).to.not.have.property('errors');",
+                      "    pm.expect(body.routing).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Routed to the expected supplier', function () {",
+                      "    const shipment = pm.response.json().routing[0];",
+                      "    pm.expect(shipment.supplier_id).to.eql('SUP-T007');",
+                      "    shipment.items.forEach(i => pm.expect(i.fulfillment_mode).to.eql('local'));",
+                      "    pm.expect(shipment.items.map(i => i.product_code)).to.eql([\"WC-STD-001\", \"CN-STD-063\", \"WK-STD-009\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "R6 - quality on a single item",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"00007\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Feasible with one shipment', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(true);",
+                      "    pm.expect(body).to.not.have.property('errors');",
+                      "    pm.expect(body.routing).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Routed to the expected supplier', function () {",
+                      "    const shipment = pm.response.json().routing[0];",
+                      "    pm.expect(shipment.supplier_id).to.eql('SUP-T008');",
+                      "    shipment.items.forEach(i => pm.expect(i.fulfillment_mode).to.eql('local'));",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "R7 - unrated suppliers are still feasible",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"00040\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"RL-STD-058\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Feasible with one shipment', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(true);",
+                      "    pm.expect(body).to.not.have.property('errors');",
+                      "    pm.expect(body.routing).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Routed to the expected supplier', function () {",
+                      "    const shipment = pm.response.json().routing[0];",
+                      "    pm.expect(shipment.supplier_id).to.eql('SUP-T011');",
+                      "    shipment.items.forEach(i => pm.expect(i.fulfillment_mode).to.eql('local'));",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "R8 - rated beats unrated",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"00040\",\n  \"mail_order\": true,\n  \"items\": [\n    {\n      \"product_code\": \"RL-STD-058\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Feasible with one shipment', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(true);",
+                      "    pm.expect(body).to.not.have.property('errors');",
+                      "    pm.expect(body.routing).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Routed to the expected supplier', function () {",
+                      "    const shipment = pm.response.json().routing[0];",
+                      "    pm.expect(shipment.supplier_id).to.not.be.oneOf([\"SUP-T011\", \"SUP-T012\"]);",
+                      "    shipment.items.forEach(i => pm.expect(i.fulfillment_mode).to.eql('mail_order'));",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "R9 - infeasible: no coverage",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"00099\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"No supplier can fulfill product_code WC-STD-001 (wheelchair) for customer_zip 00099.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "R10 - only option, low rating",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"00098\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Feasible with one shipment', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(true);",
+                      "    pm.expect(body).to.not.have.property('errors');",
+                      "    pm.expect(body.routing).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Routed to the expected supplier', function () {",
+                      "    const shipment = pm.response.json().routing[0];",
+                      "    pm.expect(shipment.supplier_id).to.eql('SUP-T014');",
+                      "    shipment.items.forEach(i => pm.expect(i.fulfillment_mode).to.eql('local'));",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "R11 - full-range coverage isn't mail",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"00050\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"CM-SENT-001\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"No supplier can fulfill product_code CM-SENT-001 (cpm machine) for customer_zip 00050.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "R12 - one bad item makes the order infeasible",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"00001\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    },\n    {\n      \"product_code\": \"CN-STD-063\",\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Not feasible, no routing', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(false);",
+                      "    pm.expect(body).to.not.have.property('routing');",
+                      "});",
+                      "pm.test('Errors are exactly as expected', function () {",
+                      "    pm.expect(pm.response.json().errors).to.eql([\"No supplier can fulfill product_code CN-STD-063 (cane) for customer_zip 00001.\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "R13 - normalization",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-TEST\",\n  \"customer_zip\": \"00001-1234\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \" wc-std-001 \",\n      \"quantity\": 3\n    }\n  ]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Feasible with one shipment', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(true);",
+                      "    pm.expect(body).to.not.have.property('errors');",
+                      "    pm.expect(body.routing).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Routed to the expected supplier', function () {",
+                      "    const shipment = pm.response.json().routing[0];",
+                      "    pm.expect(shipment.supplier_id).to.eql('SUP-T001');",
+                      "    shipment.items.forEach(i => pm.expect(i.fulfillment_mode).to.eql('local'));",
+                      "    pm.expect(shipment.items.map(i => i.product_code)).to.eql([\"WC-STD-001\"]);",
+                      "    pm.expect(shipment.items[0].quantity).to.eql(3);",
+                      "    pm.expect(shipment.items[0].category).to.eql('wheelchair');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Sample orders",
+          "item": [
+            {
+              "name": "ORD-001 - wheelchair + oxygen, NYC",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-001\",\n  \"customer_zip\": \"10015\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"WC-STD-001\",\n      \"quantity\": 1\n    },\n    {\n      \"product_code\": \"OX-PORT-024\",\n      \"quantity\": 1\n    }\n  ],\n  \"priority\": \"standard\",\n  \"notes\": \"Simple order - wheelchair + oxygen, should have multiple supplier options in NYC\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Feasible with one shipment', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(true);",
+                      "    pm.expect(body).to.not.have.property('errors');",
+                      "    pm.expect(body.routing).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Routed to the expected supplier', function () {",
+                      "    const shipment = pm.response.json().routing[0];",
+                      "    pm.expect(shipment.supplier_id).to.eql('SUP-0636');",
+                      "    pm.expect(shipment.supplier_name).to.eql(\"Care Supply Corp #636\");",
+                      "    shipment.items.forEach(i => pm.expect(i.fulfillment_mode).to.eql('local'));",
+                      "    pm.expect(shipment.items.map(i => i.product_code)).to.eql([\"WC-STD-001\", \"OX-PORT-024\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "ORD-002 - four categories, Houston",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-002\",\n  \"customer_zip\": \"77059\",\n  \"mail_order\": false,\n  \"items\": [\n    {\n      \"product_code\": \"HB-FUL-018\",\n      \"quantity\": 1\n    },\n    {\n      \"product_code\": \"PL-ELEC-043\",\n      \"quantity\": 1\n    },\n    {\n      \"product_code\": \"CM-BED-048\",\n      \"quantity\": 1\n    },\n    {\n      \"product_code\": \"BP-AUTO-077\",\n      \"quantity\": 1\n    }\n  ],\n  \"priority\": \"rush\",\n  \"notes\": \"Larger order with multiple categories - tests consolidation logic\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Feasible with one shipment', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(true);",
+                      "    pm.expect(body).to.not.have.property('errors');",
+                      "    pm.expect(body.routing).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Routed to the expected supplier', function () {",
+                      "    const shipment = pm.response.json().routing[0];",
+                      "    pm.expect(shipment.supplier_id).to.eql('SUP-0928');",
+                      "    pm.expect(shipment.supplier_name).to.eql(\"Home Solutions Co #928\");",
+                      "    shipment.items.forEach(i => pm.expect(i.fulfillment_mode).to.eql('local'));",
+                      "    pm.expect(shipment.items.map(i => i.product_code)).to.eql([\"HB-FUL-018\", \"PL-ELEC-043\", \"CM-BED-048\", \"BP-AUTO-077\"]);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "ORD-003 - respiratory, mail allowed",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Accept", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"order_id\": \"ORD-003\",\n  \"customer_zip\": \"02130\",\n  \"mail_order\": true,\n  \"items\": [\n    {\n      \"product_code\": \"CP-STD-031\",\n      \"quantity\": 1\n    },\n    {\n      \"product_code\": \"CP-MSK-FF-035\",\n      \"quantity\": 2\n    },\n    {\n      \"product_code\": \"NB-COMP-039\",\n      \"quantity\": 1\n    }\n  ],\n  \"priority\": \"standard\",\n  \"notes\": \"Respiratory-focused order - mail order allowed, should match to respiratory specialists\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{baseUrl}}/api/route", "host": ["{{baseUrl}}"], "path": ["api", "route"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test('Feasible with one shipment', function () {",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body.feasible).to.eql(true);",
+                      "    pm.expect(body).to.not.have.property('errors');",
+                      "    pm.expect(body.routing).to.have.lengthOf(1);",
+                      "});",
+                      "pm.test('Routed to the expected supplier', function () {",
+                      "    const shipment = pm.response.json().routing[0];",
+                      "    pm.expect(shipment.supplier_id).to.eql('SUP-023');",
+                      "    pm.expect(shipment.supplier_name).to.eql(\"Community Care Equipment\");",
+                      "    shipment.items.forEach(i => pm.expect(i.fulfillment_mode).to.eql('mail_order'));",
+                      "    pm.expect(shipment.items.map(i => i.product_code)).to.eql([\"CP-STD-031\", \"CP-MSK-FF-035\", \"NB-COMP-039\"]);",
+                      "    pm.expect(shipment.items[1].quantity).to.eql(2);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }

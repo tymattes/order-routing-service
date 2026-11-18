@@ -6,7 +6,6 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import com.tylermatteson.orderrouting.product.Category;
 
@@ -32,11 +31,6 @@ public class InMemorySupplierRepository implements SupplierRepository {
 		}
 		index.replaceAll((category, suppliers) -> List.copyOf(suppliers));
 		this.suppliersByCategory = Collections.unmodifiableMap(index);
-	}
-
-	@Override
-	public Optional<Supplier> findById(String id) {
-		return id == null ? Optional.empty() : Optional.ofNullable(suppliersById.get(id));
 	}
 
 	@Override

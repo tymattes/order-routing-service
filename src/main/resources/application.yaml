@@ -5,6 +5,9 @@ spring:
 app:
   # Directory containing products.csv and suppliers.csv. Override with DATA_DIR.
   data-dir: ${DATA_DIR:data/}
+  routing:
+    # Ratings within this distance count as equal, so the plan with more local suppliers wins.
+    rating-tolerance: 0.5
 
 server:
   port: 8080

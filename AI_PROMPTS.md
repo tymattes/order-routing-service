@@ -526,3 +526,415 @@ Don't commit. Summarize the changes when you're done.
 - **What is shared:** `CsvFileReader` checks the file, the required columns and the column count, and it tracks line numbers. `DataLoadException` is the common base class for both exceptions. `Category.parse` holds the trim-and-lowercase step that both loaders need.
 - **What stays in each loader:** the field rules and duplicate handling, because the two data sets genuinely differ. Products skip a same-category duplicate with a WARN, while suppliers fail on any duplicate.
 - **What is kept intact:** each data set still throws its own exception type, `Category.fromLabel` stays exact, and the existing product tests passed unchanged after the refactor. The refactor also gives both files the same error format: file, line and row id.
+
+---
+
+## 9. Plan the order routing controller shell and acceptance tests prompt
+
+**Assistant:** Claude Code (Claude Opus 5.5)
+
+```text
+Help me finish building out this prompt including the cases using data within the /data dir, this is my rough outline:
+
+On the following branch order-routing:
+- Following a TDD(Test Driven Development) strategy
+- Do not build out routing logic yet, leave a placeholder TODO comment in its place
+- Given data refernced in /data dir of this project including sample_orders.json 
+- Build the shell for the POST /api/route controller and success/response objects includeing error string constants
+    - Known error string constants: 
+- Build out acceptance test cases only in the form of expanding the order-routing-service.postman_collection.json test suite and adding JUnits(@SpringBootTest with MockMvc)
+- Test for additional layers neccsary for the routing layer will be added when the logic is implemented
+
+The routing logic is as follows: 
+1. Feasibility: route an item only to a supplier that carries its category and can deliver to the customer. That means the supplier serves the customer’s ZIP, or the order allows mail order and the supplier ships by mail.
+2. Customer experience: use as few suppliers (shipments) as possible. If one supplier can fulfill every item, send the whole order to it, even when two or more suppliers together would have higher ratings.
+3. Quality: among plans with the same number of shipments, prefer the one with higher-rated suppliers. Unrated suppliers rank below rated ones.
+4. Geographic preference: when plans’ ratings are within a set tolerance of each other, prefer the plan with more local suppliers over mail order.
+
+The API Controller details: 
+- POST /api/route controller 
+- Example Request payload: 
+    {
+    "order_id": "ORD-EXAMPLE",
+    "customer_zip": "10015",
+    "mail_order": false,
+    "items": [
+    { "product_code": "WC-STD-001", "quantity": 1 },
+    { "product_code": "OX-PORT-024", "quantity": 1 }
+    ]
+- Example success response: 
+    {
+    "feasible": true,
+    "routing": [
+    {
+    "supplier_id": "SUP-005",
+    "supplier_name": "Respiratory Care Co Co",
+    "items": [
+    {
+    "product_code": "WC-STD-001",
+    "quantity": 1,
+    "category": "wheelchair",
+    "fulfillment_mode": "local"
+    }
+    ]
+    }
+    ]
+    }
+- Example failure response: 
+    {
+    "feasible": false,
+    "errors": [
+    "Order must include at least one line item.",
+    "Order must include a valid customer_zip."
+    ]
+    }
+```
+
+**Response:**
+
+````text
+On a new order-routing branch (from main), build the shell for POST /api/route and its acceptance
+tests, test first (TDD). Do NOT implement routing logic: leave a placeholder with a
+`// TODO: routing logic` comment. Tests for the routing layer's internal classes will be added when
+the logic is built. In this step, the only tests are acceptance tests at the HTTP level.
+
+## Context
+- Java 25, Spring Boot 4.1.2, Spring Web MVC, Jackson. Base package com.tylermatteson.orderrouting.
+- Reference data is already loaded at startup from data/ (see README "Reference data"):
+  ProductRepository (findByCode) and SupplierRepository (findById, findByCategory), Category,
+  ZipCoverage (including the order-zip normalizer that returns OptionalInt).
+- data/sample_orders.json has 3 orders. They include extra fields (`priority`, `notes`) that the API
+  must ignore.
+
+## Routing rules (for the TODO comment and the test expectations, not to implement yet)
+1. Feasibility: route an item only to a supplier that carries its category and can deliver to the
+   customer. That means the supplier serves the customer's ZIP (fulfillment_mode "local"), or the
+   order allows mail order and the supplier ships by mail (fulfillment_mode "mail"). A supplier
+   that serves the ZIP is "local" even if it can also mail.
+2. Customer experience: use as few suppliers (shipments) as possible. If one supplier can fulfill
+   every item, send the whole order to it, even when two or more suppliers together would have
+   higher ratings.
+3. Quality: among plans with the same number of shipments, prefer higher-rated suppliers. Unrated
+   suppliers rank below rated ones.
+4. Geographic preference: when plans' ratings are within a set tolerance of each other, prefer the
+   plan with more local suppliers over mail order. Tolerance comes from
+   `app.routing.rating-tolerance` (default 0.5). Add the property now.
+5. Final tie-break, so results are deterministic: lowest supplier_id (string order).
+- If any item can't be fulfilled, the order is infeasible: return no routing, and one error per
+  infeasible item.
+
+## API contract
+POST /api/route, Content-Type application/json. All JSON fields are snake_case. Use @JsonNaming or
+@JsonProperty on these DTOs only, not a global naming strategy. Unknown request fields are ignored.
+
+Request:
+{ "order_id": "ORD-EXAMPLE", "customer_zip": "10015", "mail_order": false,
+  "items": [ { "product_code": "WC-STD-001", "quantity": 1 } ] }
+
+Success (200):
+{ "feasible": true,
+  "routing": [ { "supplier_id": "SUP-0636", "supplier_name": "Care Supply Corp #636",
+                 "items": [ { "product_code": "WC-STD-001", "quantity": 1,
+                              "category": "wheelchair", "fulfillment_mode": "local" } ] } ] }
+
+Failure:
+{ "feasible": false, "errors": [ "Order must include at least one line item.",
+                                 "Order must include a valid customer_zip." ] }
+
+- Leave out `routing` when not feasible, and leave out `errors` when feasible.
+- `category` is the Category label (lower-case, e.g. "cpap"). `fulfillment_mode` is "local" or
+  "mail" (an enum serialized lower-case).
+- Shipment order is the order in which each supplier's first item appears in the request. Items
+  within a shipment keep request order.
+- product_code is trimmed and upper-cased before lookup (README "Product and supplier codes"). The
+  response echoes the normalized code.
+- customer_zip is valid when the existing ZipCoverage normalizer accepts it (1-5 digits, or ZIP+4).
+- Status codes: 400 for request validation errors (including malformed JSON and unknown
+  product_code). 200 with feasible=false when the request is valid but no route exists.
+- Collect all validation errors, not just the first. Order them: order_id, items, customer_zip,
+  mail_order, then line-item errors in request order.
+
+## Error string constants
+Put them in one final class (e.g. route/RouteErrors). Use String.format templates for the
+parameterized ones. Line numbers are 1-based. Tests must assert against these constants, not
+copied strings.
+- NO_LINE_ITEMS        = "Order must include at least one line item."     (items missing or [])
+- INVALID_CUSTOMER_ZIP = "Order must include a valid customer_zip."        (missing, blank, invalid)
+- MISSING_ORDER_ID     = "Order must include an order_id."                  (missing or blank)
+- MISSING_MAIL_ORDER   = "Order must include mail_order (true or false)."   (missing or null)
+- MISSING_PRODUCT_CODE = "Line item %d must include a product_code."
+- INVALID_QUANTITY     = "Line item %d must have a quantity of at least 1." (missing, 0, negative)
+- UNKNOWN_PRODUCT_CODE = "Unknown product_code: %s."
+- MALFORMED_REQUEST    = "Request body must be a valid JSON order."         (unparseable or wrong types)
+- NO_FEASIBLE_SUPPLIER = "No supplier can fulfill product_code %s (%s) for customer_zip %s."
+                         (code, category label, zip as given)
+
+## Shell to build (package com.tylermatteson.orderrouting.route)
+- RouteController: POST /api/route. It delegates to a RouteRequestValidator, then to a
+  RoutingService.
+- Request/response records: RouteRequest (with a nested LineItem) and RouteResponse (with nested
+  Shipment, RoutedItem and FulfillmentMode). Use factory methods RouteResponse.success(...) and
+  RouteResponse.failure(...).
+- RouteRequestValidator: implement it now. It applies the validation rules and normalization
+  above, using ProductRepository for unknown codes. It returns a ValidatedOrder, or throws a
+  nested ValidationException carrying every error.
+- RoutingService interface, plus a placeholder implementation whose route(...) method holds the
+  `// TODO: routing logic` comment (rules 1-5 above summarized in it) and throws
+  UnsupportedOperationException.
+- An @RestControllerAdvice that maps malformed JSON to 400 MALFORMED_REQUEST, and a
+  ValidationException to 400 with its errors.
+
+## Acceptance tests (write these first)
+JUnit: RouteControllerAcceptanceTests, @SpringBootTest + @AutoConfigureMockMvc (same style as
+HealthEndpointTests), against the real data/. Use @Nested groups.
+Mark the "Routing" and "Sample orders" groups @Disabled("routing logic not implemented"). Validation
+must pass now, so ./mvnw clean verify stays green.
+
+### Validation (passing now): each returns 400, feasible=false, no `routing` key
+- items is [] -> [NO_LINE_ITEMS]. items missing -> [NO_LINE_ITEMS].
+- customer_zip missing, "", "ABCDE", "123456" -> [INVALID_CUSTOMER_ZIP] (each case).
+- items [] and customer_zip missing -> [NO_LINE_ITEMS, INVALID_CUSTOMER_ZIP], in that order.
+- order_id missing or "  " -> [MISSING_ORDER_ID].
+- mail_order missing -> [MISSING_MAIL_ORDER].
+- Line 2 product_code blank -> ["Line item 2 must include a product_code."].
+- quantity 0, -1, and missing -> INVALID_QUANTITY for that line.
+- product_code "XX-NOPE-999" -> ["Unknown product_code: XX-NOPE-999."].
+- Malformed body ("{not json") and quantity "abc" -> [MALFORMED_REQUEST].
+- An order with every error at once returns all of them, in the documented order.
+
+### Routing (@Disabled until the logic lands). Fixtures use mail_order false unless noted
+| # | Rule shown | zip / mail | items | Expected |
+|---|---|---|---|---|
+| R1 | Feasibility: no mail without permission | 00001 / false | WC-STD-001 | SUP-T001, local (not SUP-T002, which doesn't serve 00001) |
+| R2 | A mail-capable supplier serving the zip is local | 00002 / false | WC-STD-001 | SUP-T002, local |
+| R3 | Deterministic tie-break | 00003 / false | CN-STD-063 | SUP-T003 (ties T004 at 8.0); same result on repeat |
+| R4 | Local beats mail at equal rating | 00005 / true | WK-STD-009 | SUP-T005, local (T006 and real suppliers are 10.0 by mail only) |
+| R5 | Consolidation beats ratings | 00007 / false | WC-STD-001, CN-STD-063, WK-STD-009 | one shipment, SUP-T007 (6.0), 3 items in request order, despite the 10.0 specialists T008-T010 |
+| R6 | Quality on a single item | 00007 / false | WC-STD-001 | SUP-T008 (10.0 over T007 6.0) |
+| R7 | Unrated suppliers are still feasible | 00040 / false | RL-STD-058 | SUP-T011 (both unrated, tie-break) |
+| R8 | Rated beats unrated | 00040 / true | RL-STD-058 | supplier is not T011 or T012, fulfillment_mode "mail" |
+| R9 | Infeasible: no coverage | 00099 / false | WC-STD-001 | 200, feasible=false, [NO_FEASIBLE_SUPPLIER(WC-STD-001, wheelchair, 00099)] |
+| R10 | Only option, low rating | 00098 / false | WC-STD-001 | SUP-T014 |
+| R11 | Full-range coverage isn't mail | 00050 / false | CM-SENT-001 | infeasible (SUP-T013 covers 00100-99999 only) |
+| R12 | One bad item makes the order infeasible | 00001 / false | WC-STD-001, CN-STD-063 | feasible=false, exactly one error, for CN-STD-063 (cane); no routing |
+| R13 | Normalization | 00001-1234 / false | " wc-std-001 " qty 3 | SUP-T001; item echoes "WC-STD-001", quantity 3, category "wheelchair" |
+
+### Sample orders (@Disabled): post each order from data/sample_orders.json as-is (priority and notes included)
+- ORD-001 (10015, no mail) -> one shipment SUP-0636 "Care Supply Corp #636", both items local.
+  Only 4 suppliers cover both items locally; SUP-0636 has the highest rating, 6.8.
+- ORD-002 (77059, no mail) -> one shipment SUP-0928 "Home Solutions Co #928", all 4 items local
+  (it beats SUP-0460 at 5.3).
+- ORD-003 (02130, mail allowed) -> one shipment SUP-023 "Community Care Equipment", all 3 items by
+  mail, CP-MSK-FF-035 quantity 2. SUP-023 and SUP-065 are both 10.0 by mail, and tie-break picks
+  SUP-023. The best local single supplier, SUP-0960 at 7.0, is outside the tolerance.
+
+### Postman
+Add a "Route" folder to postman/order-routing-service.postman_collection.json. It needs one request
+per validation case above (asserting status, feasible=false and the exact errors array), plus one
+request per routing case and per sample order. In the routing and sample-order requests, put this
+first line in each test script:
+`// Pending: routing logic not implemented. Expected to fail until then.`
+Keep the collection-level response-time test. Use {{baseUrl}}.
+
+## Docs
+- README: fill in "Routing criteria" from the rules above, and add an "API" section with the request
+  and response shape, status codes and error list.
+
+Don't commit. Summarize the changes when you're done, and list any routing-test expectation that you
+think contradicts the rules.
+````
+
+---
+
+## 10. Plan the routing logic implementation prompt
+
+**Assistant:** Claude Code (Claude Opus 5.5) — /plan mode
+
+```text
+Plan the routing logic implementation, using a 2-part strategy.
+README "Routing rules" and the TODO in PlaceholderRoutingService are the spec.
+
+1. SupplierEligibility (rule 1): check category first, then local, then mail order.
+   Local wins whenever the supplier serves the ZIP. Returns Optional FulfillmentMode.
+2. MinimumShipmentRouter (rules 2-5), in priority order: find the plans with the fewest
+   shipments, then keep those whose ratings are within app.routing.rating-tolerance of
+   the best, then prefer the most local suppliers. Break any remaining tie by rating, then
+   supplier_id. Fewer shipments always wins, because plans with more suppliers never reach
+   selection. Local preference can outweigh a small rating difference, never a large one.
+   - Plan rating: the mean of supplier scores. A plan with any unrated supplier ranks below
+     all fully rated plans (fewer unrated wins). The tolerance only compares plans within the same group.
+   - An item that more than one plan supplier carries goes to the best one by (local, rating, id).
+3. OrderRoutingService replaces PlaceholderRoutingService and ties 1 and 2 together.
+   Any line with no eligible supplier → RouteResponse.failure, one
+   RouteErrors.noFeasibleSupplier per line. Shipments are ordered by each supplier's first item in the request.
+
+Give me the plan and the implementation prompt to use in a fresh session.
+```
+
+**Response:**
+
+````text
+Implement the order routing logic in order-routing-service (branch order-routing). The spec is README
+"Routing criteria" plus the TODO in src/main/java/com/tylermatteson/orderrouting/route/PlaceholderRoutingService.java.
+The target tests already exist but are @Disabled: RouteControllerAcceptanceTests.Routing (r1-r13) and .SampleOrders.
+Note: the route/ package and its tests are untracked/uncommitted work in progress; don't discard them.
+
+Build three classes in com.tylermatteson.orderrouting.route:
+
+1. SupplierEligibility (rule 1): final class, static
+   Optional<FulfillmentMode> modeFor(Supplier, Category, int zip, boolean mailOrder).
+   Check category first, then local (supplier.serviceZips().covers(zip) -> LOCAL, which wins even if the supplier
+   can mail), then mail order (mailOrder && canMailOrder -> MAIL), else empty.
+
+2. MinimumShipmentRouter (rules 2-5): plain class (not a bean), constructor takes double ratingTolerance.
+   Input: the order lines plus, per line, a non-empty List<Candidate(Supplier, FulfillmentMode)>.
+   Output: List<RouteResponse.Shipment>.
+   - Enumerate minimum covers with iterative-deepening DFS (k=1,2,...; branch on the lowest-index uncovered line's
+     candidates; dedupe plans by sorted supplier ids; stop at the first k with any cover). Plans with more
+     suppliers never reach selection, so fewer shipments always wins.
+   - Select in priority order:
+     a) fewest unrated suppliers (any unrated ranks below all fully rated plans; the tolerance only compares
+        plans within the same group);
+     b) plan rating = mean of the rated suppliers' scores (unweighted); keep plans with
+        rating >= best - tolerance - 1e-9 (if no supplier is rated, all plans in the group tie);
+     c) most LOCAL suppliers;
+     d) highest rating, then lexicographically smallest sorted supplier-id list.
+     Local preference can outweigh a small rating difference, never a large one.
+   - Within the chosen plan, each line goes to the eligible plan supplier best by (LOCAL first, rated before
+     unrated, higher score, lower id); fulfillment_mode is that supplier's mode for the line.
+   - Shipments ordered by each supplier's first assigned line in the request; items keep request order.
+     Use RoutedItem's Category constructor overload.
+
+3. OrderRoutingService (@Service implements RoutingService): replaces PlaceholderRoutingService (delete it).
+   Constructor (SupplierRepository, AppProperties). Candidates per line come from findByCategory (cache per
+   category) through SupplierEligibility. If any line has no candidates, return RouteResponse.failure with one
+   RouteErrors.noFeasibleSupplier(code, category.label(), order.customerZip()) per infeasible line in request order.
+   Otherwise return RouteResponse.success(router.route(...)).
+
+Tests (TDD: write the unit tests first, then implement):
+- SupplierEligibilityTests: wrong category; local; local+mail-capable is LOCAL; mail allowed/disallowed; neither.
+- MinimumShipmentRouterTests (hand-built Suppliers, no Spring): one generalist beats higher-rated specialists;
+  local wins within tolerance; mail wins outside tolerance; exact-tolerance boundary; tolerance 0; fully rated
+  plan beats a higher-rated plan containing an unrated supplier; fewer unrated wins; all-unrated ties go to local
+  then id; rating breaks a tie after the local count; id tie-break; item shared by two plan suppliers goes to the
+  best by (local, rating, id); shipment ordering by first item.
+- RouteControllerAcceptanceTests: remove both @Disabled; add a test with two infeasible lines -> two errors
+  in request order.
+
+Docs: update README "Routing criteria" (remove the not-implemented note; document mean rating, unrated grouping,
+tolerance-then-local order, per-item assignment). Check the Postman collection for routing requests that assert
+the placeholder 500 and update them to the real expectations.
+
+Verify: ./mvnw test passes; then run the app and newman against
+postman/order-routing-service.postman_collection.json with postman/local.postman_environment.json.
+Don't commit until I review.
+````
+
+---
+
+## 11. Order routing logic
+
+**Assistant:** Claude Code (Claude Opus 5.5)
+
+The prompt generated in step 10, run in a fresh session.
+
+```text
+Implement the order routing logic in order-routing-service (branch order-routing). The spec is README
+"Routing criteria" plus the TODO in src/main/java/com/tylermatteson/orderrouting/route/PlaceholderRoutingService.java.
+The target tests already exist but are @Disabled: RouteControllerAcceptanceTests.Routing (r1-r13) and .SampleOrders.
+Note: the route/ package and its tests are untracked/uncommitted work in progress; don't discard them.
+
+Build three classes in com.tylermatteson.orderrouting.route:
+
+1. SupplierEligibility (rule 1): final class, static
+   Optional<FulfillmentMode> modeFor(Supplier, Category, int zip, boolean mailOrder).
+   Check category first, then local (supplier.serviceZips().covers(zip) -> LOCAL, which wins even if the supplier
+   can mail), then mail order (mailOrder && canMailOrder -> MAIL), else empty.
+
+2. MinimumShipmentRouter (rules 2-5): plain class (not a bean), constructor takes double ratingTolerance.
+   Input: the order lines plus, per line, a non-empty List<Candidate(Supplier, FulfillmentMode)>.
+   Output: List<RouteResponse.Shipment>.
+   - Enumerate minimum covers with iterative-deepening DFS (k=1,2,...; branch on the lowest-index uncovered line's
+     candidates; dedupe plans by sorted supplier ids; stop at the first k with any cover). Plans with more
+     suppliers never reach selection, so fewer shipments always wins.
+   - Select in priority order:
+     a) fewest unrated suppliers (any unrated ranks below all fully rated plans; the tolerance only compares
+        plans within the same group);
+     b) plan rating = mean of the rated suppliers' scores (unweighted); keep plans with
+        rating >= best - tolerance - 1e-9 (if no supplier is rated, all plans in the group tie);
+     c) most LOCAL suppliers;
+     d) highest rating, then lexicographically smallest sorted supplier-id list.
+     Local preference can outweigh a small rating difference, never a large one.
+   - Within the chosen plan, each line goes to the eligible plan supplier best by (LOCAL first, rated before
+     unrated, higher score, lower id); fulfillment_mode is that supplier's mode for the line.
+   - Shipments ordered by each supplier's first assigned line in the request; items keep request order.
+     Use RoutedItem's Category constructor overload.
+
+3. OrderRoutingService (@Service implements RoutingService): replaces PlaceholderRoutingService (delete it).
+   Constructor (SupplierRepository, AppProperties). Candidates per line come from findByCategory (cache per
+   category) through SupplierEligibility. If any line has no candidates, return RouteResponse.failure with one
+   RouteErrors.noFeasibleSupplier(code, category.label(), order.customerZip()) per infeasible line in request order.
+   Otherwise return RouteResponse.success(router.route(...)).
+
+Tests (TDD: write the unit tests first, then implement):
+- SupplierEligibilityTests: wrong category; local; local+mail-capable is LOCAL; mail allowed/disallowed; neither.
+- MinimumShipmentRouterTests (hand-built Suppliers, no Spring): one generalist beats higher-rated specialists;
+  local wins within tolerance; mail wins outside tolerance; exact-tolerance boundary; tolerance 0; fully rated
+  plan beats a higher-rated plan containing an unrated supplier; fewer unrated wins; all-unrated ties go to local
+  then id; rating breaks a tie after the local count; id tie-break; item shared by two plan suppliers goes to the
+  best by (local, rating, id); shipment ordering by first item.
+- RouteControllerAcceptanceTests: remove both @Disabled; add a test with two infeasible lines -> two errors
+  in request order.
+
+Docs: update README "Routing criteria" (remove the not-implemented note; document mean rating, unrated grouping,
+tolerance-then-local order, per-item assignment). Check the Postman collection for routing requests that assert
+the placeholder 500 and update them to the real expectations.
+
+Verify: ./mvnw test passes; then run the app and newman against
+postman/order-routing-service.postman_collection.json with postman/local.postman_environment.json.
+Don't commit until I review.
+```
+
+---
+
+## 12. Always return HTTP 200 from POST /api/route
+
+**Assistant:** Claude Code (Claude Opus 5.5)
+
+```text
+the spec says POST /api/route always returns http 200. fix that.
+
+- RouteExceptionHandler: malformed json, wrong field types and validation errors
+  return 200 with feasible=false and the same errors (remove @ResponseStatus BAD_REQUEST)
+- unsupported content-type also returns 200 with feasible=false and a clear error constant
+- don't add a catch-all for unexpected exceptions. server bugs stay 500
+- update the acceptance tests to expect 200 everywhere, including the
+  everyErrorAtOnce case
+- update postman/order-routing-service.postman_collection.json: every request
+  expects status 200 (18 currently expect 400). keep the feasible=false and errors assertions
+- update the controller javadoc and the README status table: always 200,
+  feasible tells you the outcome
+```
+
+---
+
+## 13. Rename fulfillment_mode "mail" to "mail_order"
+
+**Assistant:** Claude Code (Claude Opus 5.5)
+
+```text
+rename fulfillment_mode "mail" to "mail_order" (enum MAIL -> MAIL_ORDER).
+update the tests, postman assertions and README to match. run ./mvnw test.
+```
+
+---
+
+## 14. Remove SupplierRepository.findById
+
+**Assistant:** Claude Code (Claude Opus 5.5)
+
+```text
+remove SupplierRepository.findById and its implementation; it's only used by tests.
+update those tests to go through findByCategory or delete them if redundant.
+run ./mvnw test.
+```
