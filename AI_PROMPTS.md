@@ -263,17 +263,6 @@ On the data-loading branch, add product data loading and a product repository la
   that DATA_DIR can point to a mounted volume instead.
 ```
 
-**Response:**
-
-Product loading and the repository layer were added; `./mvnw clean verify` passes (25 tests).
-
-- `config/AppProperties` binds `app.data-dir: ${DATA_DIR:data/}`; `@ConfigurationPropertiesScan` is on the application class.
-- `product/`: `Product` record, `Category` enum (24 labels, exact `fromLabel`), `ProductRepository` and `InMemoryProductRepository`, `ProductCsvLoader` (Commons CSV 1.14.1, returns `Map.copyOf`), `ProductDataException`, and `ProductConfiguration`, which loads `<dataDir>/products.csv` at startup so any error fails the context.
-- The real data loads 1,195 products, with a WARN for each of the 5 same-category duplicates.
-- Tests cover every case in the prompt, plus a blank code, a missing header column, context-startup failure, and a full boot against the real data. The CRLF fixture puts `product_name` (untrimmed) last so a leaked `\r` would be caught.
-- The Dockerfile copies `data/` to `/app/data/`; the README documents the loading rules and mounting a volume with `DATA_DIR`. Verified by building and running the image.
-- Choices beyond the prompt: `toLowerCase(Locale.ROOT)` to avoid locale-dependent casing, `*.csv -text` in `.gitattributes` to keep CRLF bytes intact, and failing on rows with the wrong column count.
-
 ---
 
 ## 6. Review suppliers.csv for duplicate and inconsistent supplier data
