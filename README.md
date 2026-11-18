@@ -74,6 +74,12 @@ Both files use the same format:
 - Every row must have the same number of columns as the header.
 - Line numbers in errors count the header as line 1.
 
+### Product and supplier codes
+
+`product_code` and `supplier_id` are loaded exactly as written, with no trimming or case change, and lookups are exact matches. Normalizing them at load time wasn't necessary: every code in the source data is already trimmed and upper-case (for example `WC-STD-001`, `SUP-001`).
+
+Where a request carries a product code or supplier id, the request side will trim and upper-case it before lookup. That is a well-established pattern, so it will be added in the request handling as each endpoint needs it rather than in the loaders.
+
 ### Categories
 
 Both files use the same closed set of 24 categories. Values are trimmed and lower-cased before matching, so `CPAP`, ` cpap ` and `cpap` are all the same category:
@@ -84,7 +90,7 @@ Both files use the same closed set of 24 categories. Values are trimmed and lowe
 
 Required columns: `product_code`, `product_name`, `category`.
 
-- `product_code` is used exactly as written (no trimming or case change) and lookups are exact matches, because routing to the wrong product is worse than finding none. A blank code fails loading.
+- `product_code` is used exactly as written (see [Product and supplier codes](#product-and-supplier-codes)). A blank code fails loading.
 - `product_name` is kept as-is.
 - `category` must match one of the [known categories](#categories). A blank or unknown category fails loading.
 - A repeated `product_code` with the same category is skipped with a WARN log, and the first row is kept. A repeated code with a different category fails loading, and the error names both lines.
@@ -94,7 +100,7 @@ Required columns: `product_code`, `product_name`, `category`.
 
 Required columns: `supplier_id`, `suplier_name` (spelled as in the source data), `service_zips`, `product_categories`, `customer_satisfaction_score`, `can_mail_order?`.
 
-- `supplier_id` is used exactly as written (no trimming or case change) and lookups are exact matches. A blank id fails loading, and so does any repeated id (the error names both lines).
+- `supplier_id` is used exactly as written (see [Product and supplier codes](#product-and-supplier-codes)). A blank id fails loading, and so does any repeated id (the error names both lines).
 - `suplier_name` is kept as-is.
 - `product_categories` is a comma-separated list, so it must be quoted when it has more than one value. Each value must match one of the [known categories](#categories). An unknown or empty value, or an empty list, fails loading. A category listed twice counts once.
 - `customer_satisfaction_score` is trimmed. `no ratings yet` (any case) means the supplier has no score. Otherwise it must be a plain decimal number (`9`, `9.0` and `7.8` are all valid) between 1 and 10 inclusive. Values outside that range fail loading rather than being clamped.
