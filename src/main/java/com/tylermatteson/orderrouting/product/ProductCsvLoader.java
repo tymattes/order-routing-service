@@ -40,18 +40,24 @@ public class ProductCsvLoader {
 
 	public Map<String, Product> load(Path file) {
 		Map<String, Product> products = new HashMap<>();
+		// First line each code appeared on, for duplicate messages.
 		Map<String, Long> lineByCode = new HashMap<>();
 
+		// CsvFileReader handles file, header and column-count checks; this callback validates each row.
 		reader.read(file, row -> {
+			// Key is used exactly as written ("ABC" and "abc" are different products).
 			String code = row.get(PRODUCT_CODE);
 			if (code.isBlank()) {
 				throw row.error("product_code is blank");
 			}
 
+			// Category.parse ignores case and surrounding spaces; unknown values fail.
 			String rawCategory = row.get(CATEGORY);
 			Category category = Category.parse(rawCategory)
 				.orElseThrow(() -> row.error("unrecognized category '" + rawCategory + "'"));
 
+			// Duplicate code: a conflicting category fails (we can't tell which is right); a matching one is
+			// skipped with a WARN, keeping the first.
 			Product existing = products.get(code);
 			if (existing != null) {
 				long firstLine = lineByCode.get(code);
@@ -70,6 +76,7 @@ public class ProductCsvLoader {
 		});
 
 		log.info("Loaded {} products from {}", products.size(), file.toAbsolutePath().normalize());
+		// Immutable so callers can't change the products after loading.
 		return Map.copyOf(products);
 	}
 

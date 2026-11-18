@@ -71,14 +71,20 @@ public class SupplierCsvLoader {
 			SupplierDataException::new);
 
 	public Map<String, Supplier> load(Path file) {
+		// LinkedHashMap preserves file order.
 		Map<String, Supplier> suppliers = new LinkedHashMap<>();
+		// First line each id appeared on, for duplicate messages.
 		Map<String, Long> lineById = new HashMap<>();
 
+		// CsvFileReader handles file, header and column-count checks; this callback validates each row.
 		reader.read(file, row -> {
+			// Key is used exactly as written ("ABC" and "abc" are different suppliers).
 			String id = row.get(SUPPLIER_ID);
 			if (id.isBlank()) {
 				throw row.error("supplier_id is blank: '" + id + "'");
 			}
+
+			// Duplicate id: always fails, since routing can't choose between two suppliers with the same id.
 			Long firstLine = lineById.putIfAbsent(id, row.line());
 			if (firstLine != null) {
 				throw row.error("duplicate supplier_id '" + id + "' on line " + row.line() + " (first seen on line "
@@ -90,19 +96,25 @@ public class SupplierCsvLoader {
 		});
 
 		log.info("Loaded {} suppliers from {}", suppliers.size(), file.toAbsolutePath().normalize());
+		// Immutable so callers can't change the suppliers after loading.
 		return Collections.unmodifiableMap(suppliers);
 	}
 
+	/** Parses a comma-separated category list, e.g. {@code "walker, Cane, wheelchair"}. */
 	private static Set<Category> parseCategories(CsvRow row) {
 		String raw = row.get(PRODUCT_CATEGORIES);
+		// An empty list would make the supplier unroutable.
 		if (raw.isBlank()) {
 			throw row.error("product_categories is empty: '" + raw + "'");
 		}
+		// Repeats like "cane, cane" collapse into one entry.
 		Set<Category> categories = EnumSet.noneOf(Category.class);
+		// -1 keeps empty tokens so stray commas ("cane,,walker", "cane,") are rejected, not dropped.
 		for (String token : raw.split(",", -1)) {
 			if (token.isBlank()) {
 				throw row.error("empty value in product_categories '" + raw + "'");
 			}
+			// Category.parse ignores case and surrounding spaces; unknown values fail.
 			categories.add(Category.parse(token)
 				.orElseThrow(() -> row.error("unrecognized category '" + token.trim() + "' in product_categories '"
 						+ raw + "'")));
@@ -110,16 +122,20 @@ public class SupplierCsvLoader {
 		return categories;
 	}
 
+	/** Parses the satisfaction score; empty when the supplier has {@code no ratings yet}. */
 	private static OptionalDouble parseScore(CsvRow row) {
 		String raw = row.get(SATISFACTION_SCORE);
 		String value = raw.trim();
+		// Unrated is expected, not an error; downstream logic decides how to treat it.
 		if (value.equalsIgnoreCase(NO_RATINGS_YET)) {
 			return OptionalDouble.empty();
 		}
+		// Regex first, since Double.parseDouble alone would accept "9d", "1e1" or "NaN".
 		if (!SCORE.matcher(value).matches()) {
 			throw row.error("customer_satisfaction_score '" + raw + "' is not a number or '" + NO_RATINGS_YET + "'");
 		}
 		double score = Double.parseDouble(value);
+		// Out-of-range scores fail rather than being clamped ("12" may be a typo for "1.2").
 		if (!Double.isFinite(score) || score < MIN_SCORE || score > MAX_SCORE) {
 			throw row.error("customer_satisfaction_score '" + raw + "' is outside [" + MIN_SCORE + ", " + MAX_SCORE
 					+ "]");
@@ -127,8 +143,10 @@ public class SupplierCsvLoader {
 		return OptionalDouble.of(score);
 	}
 
+	/** Parses the y/n mail-order flag. */
 	private static boolean parseCanMailOrder(CsvRow row) {
 		String raw = row.get(CAN_MAIL_ORDER);
+		// Ignores case and surrounding spaces; anything other than y/n (e.g. "yes", blank) fails.
 		return switch (raw.trim().toLowerCase(Locale.ROOT)) {
 			case "y" -> true;
 			case "n" -> false;
@@ -136,13 +154,17 @@ public class SupplierCsvLoader {
 		};
 	}
 
+	/** Parses a comma-separated list of zips and ranges, e.g. {@code "02110, 10001-10099, 94105"}. */
 	private static ZipCoverage parseServiceZips(CsvRow row) {
 		String raw = row.get(SERVICE_ZIPS);
+		// An empty list would make the supplier unroutable.
 		if (raw.isBlank()) {
 			throw row.error("service_zips is empty: '" + raw + "'");
 		}
+		// Ranges are kept as ranges rather than expanded into individual zips.
 		Set<Integer> zips = new HashSet<>();
 		List<ZipRange> ranges = new ArrayList<>();
+		// -1 keeps empty tokens so stray commas are rejected, not dropped.
 		for (String rawToken : raw.split(",", -1)) {
 			String token = rawToken.trim();
 			Matcher matcher = ZIP_TOKEN.matcher(token);
@@ -150,11 +172,13 @@ public class SupplierCsvLoader {
 				throw row.error("invalid service_zips value '" + token + "' in '" + raw
 						+ "' (expected a 1-5 digit zip or a start-end range)");
 			}
+			// Parsed as int so "02110" and "2110" (leading zero stripped by spreadsheets) match.
 			int start = Integer.parseInt(matcher.group(1));
 			if (matcher.group(2) == null) {
 				zips.add(start);
 				continue;
 			}
+			// An inverted range would silently cover nothing, so it fails.
 			int end = Integer.parseInt(matcher.group(2));
 			if (start > end) {
 				throw row.error("inverted service_zips range '" + token + "' in '" + raw + "' (start after end)");
