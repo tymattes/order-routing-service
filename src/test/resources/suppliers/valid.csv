@@ -1,0 +1,5 @@
+supplier_id,suplier_name,service_zips,product_categories,customer_satisfaction_score,can_mail_order?
+SUP-001,Alpha Medical Supply,"2110, 10001-10099","wheelchair, cane",9.0,y
+SUP-002,Beta Health,"2164-2213, 2143-2193, 2154-2171","Walker, CANE ,Hospital Bed",no ratings yet,n
+SUP-003,Gamma DME,00001,wheelchair,7.8,N
+SUP-004,Delta Care,00100-99999,cpm machine,10,Y

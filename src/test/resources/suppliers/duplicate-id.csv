@@ -1,0 +1,4 @@
+supplier_id,suplier_name,service_zips,product_categories,customer_satisfaction_score,can_mail_order?
+SUP-001,Alpha Medical Supply,2110,wheelchair,9.0,y
+SUP-002,Beta Health,2111,cane,8.0,n
+SUP-001,Alpha Again,2112,walker,7.0,n

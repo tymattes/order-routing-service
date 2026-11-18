@@ -1,2 +1,5 @@
 /mvnw text eol=lf
 *.cmd text eol=crlf
+
+# Keep CSV data byte-for-byte (data/products.csv and test fixtures use CRLF)
+*.csv -text
