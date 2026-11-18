@@ -1,116 +1,106 @@
 # order-routing-service
 
-Routes multi-item DME orders to suppliers by feasibility, customer experience, quality, and geographic preference.
+Routes multi-item DME orders to suppliers, optimizing (in order) for feasibility, fewest shipments, supplier rating, and local over mail-order fulfillment. Exposes `POST /api/route`.
 
-## Overview
+## Run it
 
-_TODO_
-
-## Routing criteria
-
-- **Feasibility** — _TODO_
-- **Customer experience** — _TODO_
-- **Quality** — _TODO_
-- **Geographic preference** — _TODO_
-
-## Tech stack
-
-| Area | Technology |
-|---|---|
-| Language | Java 25 (LTS) |
-| Framework | Spring Boot 4.1.2 (Spring Framework 7.0.10) |
-| Web | Spring Web MVC on embedded Tomcat 11, port 8080 |
-| Operations | Spring Boot Actuator (`health`, liveness and readiness probes) |
-| Build | Maven 3.10.1 via the Maven Wrapper (`./mvnw`), packaged as an executable jar |
-| Configuration | YAML (`src/main/resources/application.yaml`) |
-| Testing | JUnit 6, Spring Boot Test with MockMvc |
-| API testing | Postman collection, runnable with Newman |
-| Containers | Multi-stage Docker build: `eclipse-temurin:25-jdk` to build, `eclipse-temurin:25-jre` to run (non-root user, layered jar) |
-
-Base package: `com.tylermatteson.orderrouting`. The project was scaffolded with [Spring Initializr](https://start.spring.io/).
-
-## Build & run
-
-```bash
-mvn clean install 
-mvn spring-boot:run
-```
-
-### Docker
+With Docker (no local Java needed):
 
 ```bash
 docker build -t order-routing-service .
 docker run --rm -p 8080:8080 order-routing-service
 ```
 
-The image includes `data/` at `/app/data/`. To use different data without rebuilding, mount a directory and point `DATA_DIR` at it:
+Or locally with Java 25:
 
 ```bash
-docker run --rm -p 8080:8080 \
-  -v "$(pwd)/my-data:/mnt/data:ro" \
-  -e DATA_DIR=/mnt/data \
-  order-routing-service
+./mvnw spring-boot:run
 ```
 
-Health check: `GET http://localhost:8080/actuator/health` (also `/actuator/health/liveness` and `/actuator/health/readiness`).
+Try a sample order:
 
-### API tests (Postman)
+```bash
+curl -s localhost:8080/api/route -H 'Content-Type: application/json' -d '{
+  "order_id": "ORD-001", "customer_zip": "10015", "mail_order": false,
+  "items": [ { "product_code": "WC-STD-001", "quantity": 1 }, { "product_code": "OX-PORT-024", "quantity": 1 } ]
+}'
+```
 
-The Postman collection and local environment live in `postman/`. Import both into Postman, or run them from the CLI with Newman while the app is running:
+Health: `GET /actuator/health` (plus `/liveness` and `/readiness`).
+
+## Test
+
+```bash
+./mvnw test
+```
+
+Unit tests cover supplier eligibility and plan selection; acceptance tests drive the endpoint through MockMvc against the real CSVs, including the three orders in `data/sample_orders.json`.
+
+API tests against a running instance (Postman collection in `postman/`):
 
 ```bash
 npx newman run postman/order-routing-service.postman_collection.json \
   -e postman/local.postman_environment.json
 ```
 
-## Reference data
+## Routing logic
 
-At startup the service loads `products.csv` and `suppliers.csv` from the directory set by `DATA_DIR` (property `app.data-dir`, default `data/` relative to the working directory). Loading fails fast: the application won't start if a file is missing or unreadable, a required column is missing, a row has the wrong number of columns, or a row is invalid. Row errors name the file, line number, row id and the offending raw value.
+A *plan* is a set of suppliers that together can take every item. Each rule only breaks ties left by the ones before it.
 
-Both files use the same format:
+1. **Feasibility.** A supplier can take an item if it carries the item's category and either serves the customer's zip (`local`) or the order allows mail order and the supplier ships by mail (`mail_order`). A supplier serving the zip counts as `local` even if it also mails. If any item has no feasible supplier, the order is infeasible, with one error per such item.
+2. **Fewest shipments.** Only plans with the minimum number of suppliers are considered. If one supplier can take everything, it gets the whole order, even if a split would be better rated.
+3. **Quality.** Plans with fewer unrated (`no ratings yet`) suppliers win. Among those, a plan's rating is the mean of its suppliers' scores, and plans more than `app.routing.rating-tolerance` (default `0.5`) below the best are dropped.
+4. **Local preference.** Of the plans left, the one with more local suppliers wins. Because of the tolerance, local preference can outweigh a small rating gap but not a large one.
+5. **Tie-break.** Higher rating, then lowest supplier ids, so results are deterministic.
 
-- Standard CSV (RFC 4180), so quoted values may contain commas. Files are read as UTF-8, and LF and CRLF line endings both work.
-- The first row is the header. Columns are found by header name, so their order doesn't matter and extra columns are ignored.
-- Every row must have the same number of columns as the header.
-- Line numbers in errors count the header as line 1.
+Within the chosen plan, each item goes to the best plan supplier that can take it (local, then rated, then higher score, then lowest id).
 
-### Product and supplier codes
+## API
 
-`product_code` and `supplier_id` are loaded exactly as written, with no trimming or case change, and lookups are exact matches. Normalizing them at load time wasn't necessary: every code in the source data is already trimmed and upper-case (for example `WC-STD-001`, `SUP-001`).
+`POST /api/route` with `Content-Type: application/json`. Fields are snake_case; unknown fields (such as `priority` and `notes` in the samples) are ignored. Request and response shapes match the exercise spec:
 
-Where a request carries a product code or supplier id, the request side will trim and upper-case it before lookup. That is a well-established pattern, so it will be added in the request handling as each endpoint needs it rather than in the loaders.
+```json
+{ "feasible": true,
+  "routing": [ { "supplier_id": "SUP-0636", "supplier_name": "Care Supply Corp #636",
+                 "items": [ { "product_code": "WC-STD-001", "quantity": 1, "category": "wheelchair", "fulfillment_mode": "local" } ] } ] }
+```
 
-### Categories
+```json
+{ "feasible": false, "errors": [ "Order must include at least one line item.", "Order must include a valid customer_zip." ] }
+```
 
-Both files use the same closed set of 24 categories. Values are trimmed and lower-cased before matching, so `CPAP`, ` cpap ` and `cpap` are all the same category:
+Shipments are ordered by where each supplier's first item appears in the request, and items keep request order.
 
-`ankle brace`, `back brace`, `blood pressure monitor`, `cane`, `cervical collar`, `commode`, `compression stockings`, `cpap`, `cpm machine`, `crutches`, `glucose meter`, `heating pad`, `hospital bed`, `ice machine`, `knee scooter`, `nebulizer`, `oxygen`, `patient lift`, `rollator`, `shower chair`, `tens unit`, `traction device`, `walker`, `wheelchair`.
+`POST /api/route` always returns `200`; `feasible` tells you the outcome. Only an unexpected server error returns `500`.
 
-### Products (`products.csv`)
+| `feasible` | When |
+|---|---|
+| `true` | The order is valid and routable; `routing` lists the shipments. |
+| `false` | The order is valid but some item can't be routed: `No supplier can fulfill product_code CODE (CATEGORY) for customer_zip ZIP.` per unroutable item. |
+| `false` | The request is invalid: malformed JSON, wrong field type, missing or invalid field, or unknown `product_code`. `errors` lists every validation error (messages in `RouteErrors`). |
+| `false` | `Content-Type` is missing or not `application/json`: `Content-Type must be application/json.` |
 
-Required columns: `product_code`, `product_name`, `category`.
+Validation: `order_id` required; `customer_zip` is 1-5 digits or ZIP+4; `mail_order` must be `true`/`false`; `items` must be non-empty, each with a known `product_code` (trimmed and upper-cased) and `quantity` ≥ 1.
 
-- `product_code` is used exactly as written (see [Product and supplier codes](#product-and-supplier-codes)). A blank code fails loading.
-- `product_name` is kept as-is.
-- `category` must match one of the [known categories](#categories). A blank or unknown category fails loading.
-- A repeated `product_code` with the same category is skipped with a WARN log, and the first row is kept. A repeated code with a different category fails loading, and the error names both lines.
-- Products are looked up by code only.
+## Data handling
 
-### Suppliers (`suppliers.csv`)
+`products.csv` and `suppliers.csv` are loaded once at startup from `DATA_DIR` (default `data/`; baked into the image at `/app/data`). Loading fails fast with the file, line and bad value if the data is invalid, so the service never runs on partially loaded data.
 
-Required columns: `supplier_id`, `suplier_name` (spelled as in the source data), `service_zips`, `product_categories`, `customer_satisfaction_score`, `can_mail_order?`.
+How the messy supplier data is interpreted:
 
-- `supplier_id` is used exactly as written (see [Product and supplier codes](#product-and-supplier-codes)). A blank id fails loading, and so does any repeated id (the error names both lines).
-- `suplier_name` is kept as-is.
-- `product_categories` is a comma-separated list, so it must be quoted when it has more than one value. Each value must match one of the [known categories](#categories). An unknown or empty value, or an empty list, fails loading. A category listed twice counts once.
-- `customer_satisfaction_score` is trimmed. `no ratings yet` (any case) means the supplier has no score. Otherwise it must be a plain decimal number (`9`, `9.0` and `7.8` are all valid) between 1 and 10 inclusive. Values outside that range fail loading rather than being clamped.
-- `can_mail_order?` is trimmed and must be `y` or `n` (any case).
-- `service_zips` is a comma-separated list of tokens, and spaces around each token are ignored. An empty list fails loading. Each token is a zip (1-5 digits) or a range `start-end` (1-5 digits on each side). Zips are compared as integers, so 4-digit values with the leading zero dropped work: `2110` is `02110`, and `2164-2213` is `02164-02213`. Empty tokens, malformed tokens, and inverted ranges fail loading. Overlapping ranges and single zips inside a range are allowed.
-- Order zips are normalized the same way before they are compared. ZIP+4 (`02110-1234`) uses the first five digits, and an invalid zip matches no supplier.
-- A supplier covering every zip (for example `00100-99999`) is still only local coverage. It is unrelated to `can_mail_order?`.
-- Suppliers can be looked up by id, or by category (results come back in file order).
-- Rows `SUP-T001`..`SUP-T014` are routing test fixtures with placeholder zips such as `00001`. They are loaded like any other row.
+- **`service_zips`**: mix of single zips and `start-end` ranges, compared as integers so a dropped leading zero still matches (`2110` = `02110`). ZIP+4 in requests uses the first five digits.
+- **`customer_satisfaction_score`**: decimal 1-10, or `no ratings yet` (any case) for unrated. Out-of-range values fail loading rather than being clamped.
+- **`product_categories`** and product `category`: trimmed and lower-cased, and must be one of the 24 known categories.
+- **`can_mail_order?`**: `y`/`n`, any case. Nationwide zip coverage (for example `00100-99999`) is still local, not mail.
+- Duplicate products with the same category are skipped with a warning; conflicting duplicates and duplicate supplier ids fail loading. The `suplier_name` header typo is matched as-is.
+- Suppliers `SUP-T001`..`SUP-T014` are routing test fixtures with placeholder zips.
 
-## Development workflow
+To use different data without rebuilding:
 
-`main` is protected: all changes land via pull request; force pushes are blocked.
+```bash
+docker run --rm -p 8080:8080 -v "$(pwd)/my-data:/mnt/data:ro" -e DATA_DIR=/mnt/data order-routing-service
+```
+
+## Tech stack
+
+Java 25, Spring Boot 4.1 (Web MVC, Actuator), Maven wrapper, JUnit 6 + MockMvc, multi-stage Docker build on `eclipse-temurin:25` (non-root, layered jar). Config lives in `src/main/resources/application.yaml`.

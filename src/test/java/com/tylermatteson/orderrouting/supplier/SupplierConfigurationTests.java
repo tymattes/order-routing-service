@@ -12,6 +12,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import com.tylermatteson.orderrouting.config.AppProperties;
+import com.tylermatteson.orderrouting.product.Category;
 
 class SupplierConfigurationTests {
 
@@ -24,7 +25,9 @@ class SupplierConfigurationTests {
 		contextRunner.withPropertyValues("app.data-dir=" + dataDir)
 			.run(context -> {
 				assertThat(context).hasNotFailed();
-				assertThat(context.getBean(SupplierRepository.class).findById("SUP-001")).isPresent();
+				assertThat(context.getBean(SupplierRepository.class).findByCategory(Category.WHEELCHAIR))
+					.extracting(Supplier::id)
+					.containsExactly("SUP-001", "SUP-003");
 			});
 	}
 
