@@ -2,6 +2,10 @@ spring:
   application:
     name: order-routing-service
 
+app:
+  # Directory containing products.csv and suppliers.csv. Override with DATA_DIR.
+  data-dir: ${DATA_DIR:data/}
+
 server:
   port: 8080
 

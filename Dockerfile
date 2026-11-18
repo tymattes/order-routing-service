@@ -26,5 +26,9 @@ COPY --from=build /workspace/target/extracted/spring-boot-loader/ ./
 COPY --from=build /workspace/target/extracted/snapshot-dependencies/ ./
 COPY --from=build /workspace/target/extracted/application/ ./
 
+# Reference data, resolved against WORKDIR as /app/data/ (the default app.data-dir).
+# Override with DATA_DIR to read from a mounted volume instead.
+COPY data/ data/
+
 EXPOSE 8080
 ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
