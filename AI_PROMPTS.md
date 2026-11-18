@@ -47,7 +47,7 @@ Dockerize this application with a multi-stage dockerfile using the latest long t
 Create an empty AI_PROMPTS.md file at the project root with a header significant prompts given to AI coding assistants while building this project
 ```
 
-## 2. Actuator health endpoint and Postman suite
+## 3. Actuator health endpoint and Postman suite
 
 **Assistant:** Claude Code (Claude Opus 5.5)
 
@@ -57,7 +57,7 @@ lets setup an actuator health endpoint and a postman test suite
 
 ---
 
-## 3. Review products.csv for duplicate and inconsistent product codes
+## 4. Review products.csv for duplicate and inconsistent product codes
 
 **Assistant:** Claude Code (Claude Opus 5.5)
 
@@ -121,7 +121,7 @@ Line 206, `CM-SENT-001,Sentinel CPM Machine,cpm machine`. Everywhere else, `CM-`
 
 ---
 
-## 4. Plan the product CSV loading and repository prompt
+## 5. Plan the product CSV loading and repository prompt
 
 **Assistant:** Claude Code (Claude Opus 5.5) — /plan mode
 
@@ -205,11 +205,11 @@ Don't commit. Summarize the changes when you're done.
 ````
 ---
 
-## 5. Product CSV loading and repository layer
+## 6. Product CSV loading and repository layer
 
 **Assistant:** Claude Code (Claude Opus 5.5)
 
-The prompt generated in step 4, run in a fresh session (without the trailing "Don't commit" line).
+The prompt generated in step 5, run in a fresh session (without the trailing "Don't commit" line).
 
 ```text
 On the data-loading branch, add product data loading and a product repository layer.
@@ -265,7 +265,7 @@ On the data-loading branch, add product data loading and a product repository la
 
 ---
 
-## 6. Review suppliers.csv for duplicate and inconsistent supplier data
+## 7. Review suppliers.csv for duplicate and inconsistent supplier data
 
 **Assistant:** Claude Code (Claude Opus 5.5)
 
@@ -336,7 +336,7 @@ Things I checked that came back clean: no backwards ranges (start > end), no rep
 
 ---
 
-## 7. Plan the supplier CSV loading and repository prompt
+## 8. Plan the supplier CSV loading and repository prompt
 
 **Assistant:** Claude Code (Claude Opus 5.5) — /plan mode
 
@@ -432,11 +432,11 @@ Don't commit. Summarize the changes when you're done.
 
 ---
 
-## 8. Supplier CSV loading and repository layer
+## 9. Supplier CSV loading and repository layer
 
 **Assistant:** Claude Code (Claude Opus 5.5)
 
-The prompt generated in step 7, run in a fresh session, with a "Shared Code" section added at the end.
+The prompt generated in step 8, run in a fresh session, with a "Shared Code" section added at the end.
 
 ```text
 On the data-loading branch, add supplier data loading and a supplier repository layer.
@@ -521,7 +521,7 @@ Refactor product loading to use these, and keep the existing product tests passi
 Don't commit. Summarize the changes when you're done.
 ```
 
-**Note on code reuse:** The plan from step 7 had the supplier loader mirror `ProductCsvLoader`, which would have copied its file, header and column-count checks and its line-number handling into a second class. Before running it, the "Shared Code" section was added so that this generic work moves into one `CsvFileReader` first, and product loading is refactored onto it before any supplier code is written.
+**Note on code reuse:** The plan from step 8 had the supplier loader mirror `ProductCsvLoader`, which would have copied its file, header and column-count checks and its line-number handling into a second class. Before running it, the "Shared Code" section was added so that this generic work moves into one `CsvFileReader` first, and product loading is refactored onto it before any supplier code is written.
 
 - **What is shared:** `CsvFileReader` checks the file, the required columns and the column count, and it tracks line numbers. `DataLoadException` is the common base class for both exceptions. `Category.parse` holds the trim-and-lowercase step that both loaders need.
 - **What stays in each loader:** the field rules and duplicate handling, because the two data sets genuinely differ. Products skip a same-category duplicate with a WARN, while suppliers fail on any duplicate.
@@ -529,7 +529,7 @@ Don't commit. Summarize the changes when you're done.
 
 ---
 
-## 9. Plan the order routing controller shell and acceptance tests prompt
+## 10. Plan the order routing controller shell and acceptance tests prompt
 
 **Assistant:** Claude Code (Claude Opus 5.5)
 
@@ -746,7 +746,7 @@ think contradicts the rules.
 
 ---
 
-## 10. Plan the routing logic implementation prompt
+## 11. Plan the routing logic implementation prompt
 
 **Assistant:** Claude Code (Claude Opus 5.5) — /plan mode
 
@@ -832,11 +832,11 @@ Don't commit until I review.
 
 ---
 
-## 11. Order routing logic
+## 12. Order routing logic
 
 **Assistant:** Claude Code (Claude Opus 5.5)
 
-The prompt generated in step 10, run in a fresh session.
+The prompt generated in step 11, run in a fresh session.
 
 ```text
 Implement the order routing logic in order-routing-service (branch order-routing). The spec is README
@@ -897,7 +897,7 @@ Don't commit until I review.
 
 ---
 
-## 12. Always return HTTP 200 from POST /api/route
+## 13. Always return HTTP 200 from POST /api/route
 
 **Assistant:** Claude Code (Claude Opus 5.5)
 
@@ -918,7 +918,7 @@ the spec says POST /api/route always returns http 200. fix that.
 
 ---
 
-## 13. Rename fulfillment_mode "mail" to "mail_order"
+## 14. Rename fulfillment_mode "mail" to "mail_order"
 
 **Assistant:** Claude Code (Claude Opus 5.5)
 
@@ -929,7 +929,7 @@ update the tests, postman assertions and README to match. run ./mvnw test.
 
 ---
 
-## 14. Remove SupplierRepository.findById
+## 15. Remove SupplierRepository.findById
 
 **Assistant:** Claude Code (Claude Opus 5.5)
 
